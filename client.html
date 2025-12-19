@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastermind Sayı Oyunu - Çok Oyunculu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .container.login-mode {
+            grid-template-columns: 1fr;
+            max-width: 600px;
+        }
+
+        @media (max-width: 968px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .game-panel, .sidebar {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .status {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .status.error {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .status.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .status.warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .timer-bar-container {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 30px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timer-bar {
+            background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+            height: 100%;
+            transition: width 0.3s linear;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .timer-bar.warning {
+            background: linear-gradient(90deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .timer-bar.danger {
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .match-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .match-info h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .match-info .round-info {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 18px;
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: bold;
+            letter-spacing: 5px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .stat-card.orange {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .stat-card.blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .history {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .history-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s;
+            border-left: 4px solid #667eea;
+        }
+
+        .history-item.correct {
+            border-left-color: #43e97b;
+            background: #e8f8f1;
+        }
+
+        .guess-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 3px;
+        }
+
+        .guess-result {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 1.2em;
+        }
+
+        .result-badge {
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .result-badge.green {
+            background: #43e97b;
+            color: white;
+        }
+
+        .result-badge.yellow {
+            background: #fee140;
+            color: #333;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .leaderboard {
+            margin-top: 20px;
+        }
+
+        .leaderboard h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+        }
+
+        .leaderboard-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .leaderboard-item:hover {
+            transform: translateX(5px);
+        }
+
+        .leaderboard-item:first-child {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            font-weight: bold;
+        }
+
+        .leaderboard-item:nth-child(2) {
+            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+        }
+
+        .leaderboard-item:nth-child(3) {
+            background: linear-gradient(135deg, #cd7f32 0%, #e8a87c 100%);
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .player-name {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .player-matches {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
+
+        .player-score {
+            background: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .connection-status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .game-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: #1565c0;
+            font-size: 0.9em;
+            line-height: 1.8;
+        }
+
+        .game-info strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .login-container {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .login-container h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .login-container .subtitle {
+            font-size: 1.1em;
+            margin-bottom: 40px;
+        }
+
+        .login-welcome {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #1565c0;
+        }
+
+        .login-welcome .welcome-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .login-rules {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .login-rules h3 {
+            color: #856404;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .login-rules ul {
+            list-style: none;
+            color: #856404;
+            font-size: 0.95em;
+            line-height: 1.8;
+        }
+
+        .login-rules li {
+            padding: 6px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .login-rules li:before {
+            content: "▸";
+            position: absolute;
+            left: 8px;
+            font-weight: bold;
+            color: #ff9800;
+        }
+
+        .login-container .input-group {
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .login-container input[type="text"] {
+            font-size: 20px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .login-container button {
+            font-size: 20px;
+            padding: 18px;
+            margin-top: 5px;
+        }
+
+        .login-container label {
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .countdown-display {
+            text-align: center;
+            padding: 40px;
+            margin: 20px 0;
+        }
+
+        .countdown-number {
+            font-size: 5em;
+            font-weight: bold;
+            color: #667eea;
+            animation: countdownPulse 1s ease-in-out;
+        }
+
+        @keyframes countdownPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .waiting-message {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        .rules-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .rules-box h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .rules-box ul {
+            list-style: none;
+            color: #856404;
+        }
+
+        .rules-box li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .rules-box li:before {
+            content: "•";
+            position: absolute;
+            left: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container login-mode" id="mainContainer">
+        <!-- Ana Oyun Paneli -->
+        <div class="game-panel">
+            <!-- Giriş Ekranı -->
+            <div id="nameSection" class="login-container">
+                <h1>🎯 Mastermind Sayı Oyunu</h1>
+                <div class="subtitle">Çok Oyunculu WebSocket Oyunu</div>
+
+                <div id="connectionStatus" class="connection-status disconnected">
+                    🔴 Sunucuya bağlanıyor...
+                </div>
+
+                <div class="login-welcome">
+                    <div class="welcome-icon">🎮</div>
+                    <strong>Hoş Geldiniz!</strong><br>
+                    3 basamaklı sayıları tahmin edin ve en yüksek skoru kazanın!
+                </div>
+
+                <div class="login-rules">
+                    <h3>📋 Nasıl Oynanır?</h3>
+                    <ul>
+                        <li>100-999 arası <strong>3 basamaklı sayı</strong> tahmin edin</li>
+                        <li>🟢 = Doğru rakam, doğru yerde</li>
+                        <li>🟡 = Doğru rakam, yanlış yerde</li>
+                        <li>Her round <strong>60 saniye</strong>, her maç <strong>5 round</strong></li>
+                        <li>⚡ Erken tahmin = Daha fazla puan!</li>
+                    </ul>
+                </div>
+
+                <div class="input-group">
+                    <label for="playerName">👤 İsminiz:</label>
+                    <input type="text" id="playerName" placeholder="İsminizi girin" maxlength="20" autofocus>
+                    <button id="joinBtn" onclick="joinGame()">Oyuna Katıl 🚀</button>
+                </div>
+            </div>
+
+            <!-- Oyun Bölümü -->
+            <div id="gameSection" class="hidden">
+                <h1>🎯 Mastermind Sayı Oyunu</h1>
+                <div class="subtitle">Çok Oyunculu WebSocket Oyunu</div>
+
+                <div id="connectionStatusGame" class="connection-status connected">
+                    🟢 Sunucuya bağlı
+                </div>
+
+                <div id="statusMessage" class="status">
+                    Hoş geldiniz! Oyun başlamak üzere.
+                </div>
+
+                <!-- Oyun İpuçları -->
+                <div class="rules-box">
+                    <h3>💡 İpuçları & Puanlama:</h3>
+                    <ul>
+                        <li>🎯 <strong>Temel Puan:</strong> 100 + Zaman Bonusu (0-75p)</li>
+                        <li>⚡ <strong>Hız Bonusu:</strong> Erken tahmin daha fazla puan!</li>
+                        <li>🟢 <strong>Yeşil:</strong> Doğru rakam, doğru pozisyon</li>
+                        <li>🟡 <strong>Sarı:</strong> Doğru rakam, yanlış pozisyon</li>
+                        <li>🏆 <strong>Maç:</strong> 5 round, en yüksek toplam puan kazanır</li>
+                    </ul>
+                </div>
+
+                <!-- Maç Bilgisi -->
+                <div class="match-info" id="matchInfo">
+                    <h2>🏆 Maç #<span id="matchNumber">1</span></h2>
+                    <div class="round-info">
+                        Round <span id="currentRound">1</span>/<span id="totalRounds">5</span>
+                    </div>
+                </div>
+
+                <!-- Zamanlayıcı -->
+                <div id="timerContainer" class="timer-bar-container hidden">
+                    <div class="timer-bar" id="timerBar">
+                        <span id="timerText">60s</span>
+                    </div>
+                </div>
+
+                <!-- Bekleme Mesajı -->
+                <div id="waitingMessage" class="waiting-message hidden">
+                    <div id="waitingText">Lütfen bekleyin...</div>
+                </div>
+
+                <!-- Geri Sayım -->
+                <div id="countdownDisplay" class="countdown-display hidden">
+                    <div>Yeni maç başlıyor...</div>
+                    <div class="countdown-number" id="countdownNumber">45</div>
+                </div>
+
+                <!-- İstatistikler -->
+                <div class="stats">
+                    <div class="stat-card green">
+                        <div class="stat-label">Toplam Puan</div>
+                        <div class="stat-value" id="totalScore">0</div>
+                    </div>
+                    <div class="stat-card blue">
+                        <div class="stat-label">Maç Puanı</div>
+                        <div class="stat-value" id="matchScore">0</div>
+                    </div>
+                    <div class="stat-card orange">
+                        <div class="stat-label">Tahmin</div>
+                        <div class="stat-value" id="guessCount">0</div>
+                    </div>
+                </div>
+
+                <!-- Tahmin Girişi -->
+                <div class="input-group" id="guessSection">
+                    <label for="guessInput">🎲 Tahmininiz (100-999):</label>
+                    <input type="number" id="guessInput" min="100" max="999" placeholder="3 basamaklı sayı">
+                    <button id="guessBtn" onclick="makeGuess()">Tahmin Et</button>
+                </div>
+
+                <!-- Tahmin Geçmişi -->
+                <div class="history" id="history">
+                    <strong>📜 Tahmin Geçmişi:</strong>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Yan Panel -->
+        <div class="sidebar hidden" id="sidebarPanel">
+            <h2 style="color: #667eea; text-align: center; margin-bottom: 20px;">🏆 Liderlik Tablosu</h2>
+            <ul class="leaderboard-list" id="leaderboard">
+                <li style="text-align: center; color: #999; padding: 20px;">
+                    Henüz oyuncu yok
+                </li>
+            </ul>
+
+            <div class="leaderboard">
+                <h2>ℹ️ Puan Hesaplama</h2>
+                <div class="game-info" style="text-align: left;">
+                    <strong>Temel Puan:</strong> 100<br>
+                    <strong>Zaman Bonusu:</strong> 0-75p (hıza göre)<br>
+                    <strong>Erken tahmin:</strong> Daha fazla puan! ⚡<br>
+                    <strong>Minimum:</strong> 50p garanti<br><br>
+                    <strong>🟢 Doğru yerde:</strong> Rakam ve yer doğru<br>
+                    <strong>🟡 Yanlış yerde:</strong> Rakam doğru, yer yanlış
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let playerId;
+        let playerName;
+        let timerInterval = null;
+        let roundEndTime = null;
+
+        // WebSocket bağlantısı kur
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('✅ WebSocket bağlantısı kuruldu');
+                updateConnectionStatus(true);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = () => {
+                console.log('❌ WebSocket bağlantısı kapandı');
+                updateConnectionStatus(false);
+                setTimeout(() => connect(), 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket hatası:', error);
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const statusElGame = document.getElementById('connectionStatusGame');
+            
+            if (connected) {
+                if (statusEl) {
+                    statusEl.className = 'connection-status connected';
+                    statusEl.textContent = '🟢 Sunucuya bağlı';
+                }
+                if (statusElGame) {
+                    statusElGame.className = 'connection-status connected';
+                    statusElGame.textContent = '🟢 Sunucuya bağlı';
+                }
+            } else {
+                if (statusEl) {
+                    statusEl.className = 'connection-status disconnected';
+                    statusEl.textContent = '🔴 Sunucuyla bağlantı kesildi';
+                }
+                if (statusElGame) {
+                    statusElGame.className = 'connection-status disconnected';
+                    statusElGame.textContent = '🔴 Sunucuyla bağlantı kesildi';
+                }
+            }
+        }
+
+        function handleMessage(data) {
+            console.log('Mesaj alındı:', data);
+
+            switch (data.type) {
+                case 'connected':
+                    playerId = data.playerId;
+                    showStatus(data.message, 'success');
+                    break;
+
+                case 'nameSet':
+                    playerName = data.name;
+                    // Giriş ekranını gizle, oyun ekranını göster
+                    document.getElementById('nameSection').classList.add('hidden');
+                    document.getElementById('gameSection').classList.remove('hidden');
+                    // Container'ı normal moda çevir ve sidebar'ı göster
+                    document.getElementById('mainContainer').classList.remove('login-mode');
+                    document.getElementById('sidebarPanel').classList.remove('hidden');
+                    showStatus(data.message, 'success');
+                    break;
+
+                case 'waitingForRound':
+                    showWaitingMessage(`⏳ Mevcut round devam ediyor...<br>Round ${data.currentRound}/${data.totalRounds} bitince katılabilirsiniz.`);
+                    break;
+
+                case 'waitingForMatch':
+                    showWaitingMessage('⏳ Yeni maç başlamak üzere...');
+                    break;
+
+                case 'matchStart':
+                    hideWaitingMessage();
+                    hideCountdown();
+                    document.getElementById('matchNumber').textContent = data.matchNumber;
+                    document.getElementById('totalRounds').textContent = data.totalRounds;
+                    showStatus(data.message, 'success');
+                    resetMatchStats();
+                    break;
+
+                case 'roundStart':
+                    hideWaitingMessage();
+                    document.getElementById('currentRound').textContent = data.roundNumber;
+                    document.getElementById('totalRounds').textContent = data.totalRounds;
+                    showStatus(data.message, 'success');
+                    resetRoundStats();
+                    clearHistory();
+                    enableGuessing();
+                    startTimer(data.roundDuration);
+                    break;
+
+                case 'hint':
+                    updateGuessCount(data.guessCount);
+                    addHistoryItem(data.guess, data.result, false);
+                    showStatus(data.message, 'warning');
+                    break;
+
+                case 'correctGuess':
+                    updateGuessCount(data.guessCount);
+                    updateMatchScore(data.matchScore);
+                    updateTotalScore(data.totalScore);
+                    addHistoryItem(data.guess, data.result, true);
+                    showStatus(`🎉 DOĞRU! +${data.score} puan! Round tamamlandı!`, 'success');
+                    disableGuessing();
+                    break;
+
+                case 'playerWonRound':
+                    showStatus(`🏆 ${data.playerName} round'u kazandı! (${data.guessCount} tahminde, +${data.score}p)`, 'success');
+                    break;
+
+                case 'roundEnd':
+                    stopTimer();
+                    if (data.winners.length > 0) {
+                        const winnerText = data.winners.map(w => `${w.name} (+${w.score}p)`).join(', ');
+                        showStatus(`⏰ Round bitti! Kazananlar: ${winnerText}`, 'success');
+                    } else {
+                        showStatus(`⏰ Round bitti! Kimse bilеmedi. Doğru sayı: ${data.targetNumber}`, 'error');
+                    }
+                    disableGuessing();
+                    if (!data.hasMoreRounds) {
+                        showStatus('🏁 Maç tamamlandı! Sonuçlar bekleniyor...', 'success');
+                    }
+                    break;
+
+                case 'matchEnd':
+                    showStatus(`🏁 Maç bitti! Yeni maç ${Math.ceil(data.nextMatchIn/1000)} saniye sonra başlayacak.`, 'success');
+                    showMatchResults(data.matchResults);
+                    break;
+
+                case 'matchCountdown':
+                    showCountdown(data.remainingSeconds);
+                    break;
+
+                case 'leaderboard':
+                    updateLeaderboard(data.leaderboard);
+                    break;
+
+                case 'playerJoined':
+                    showStatus(`${data.playerName} oyuna katıldı! (Toplam: ${data.totalPlayers} oyuncu)`, 'success');
+                    break;
+
+                case 'playerLeft':
+                    showStatus(`${data.playerName} oyundan ayrıldı.`, 'error');
+                    break;
+
+                case 'error':
+                    showStatus(data.message, 'error');
+                    break;
+            }
+        }
+
+        function showStatus(message, type = '') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.innerHTML = message;
+            statusEl.className = 'status ' + type;
+        }
+
+        function showWaitingMessage(message) {
+            const waitingEl = document.getElementById('waitingMessage');
+            const waitingText = document.getElementById('waitingText');
+            waitingText.innerHTML = message;
+            waitingEl.classList.remove('hidden');
+            document.getElementById('guessSection').classList.add('hidden');
+            document.getElementById('timerContainer').classList.add('hidden');
+        }
+
+        function hideWaitingMessage() {
+            document.getElementById('waitingMessage').classList.add('hidden');
+            document.getElementById('guessSection').classList.remove('hidden');
+        }
+
+        function showCountdown(seconds) {
+            const countdownEl = document.getElementById('countdownDisplay');
+            const numberEl = document.getElementById('countdownNumber');
+            numberEl.textContent = seconds;
+            numberEl.style.animation = 'none';
+            setTimeout(() => {
+                numberEl.style.animation = 'countdownPulse 1s ease-in-out';
+            }, 10);
+            countdownEl.classList.remove('hidden');
+        }
+
+        function hideCountdown() {
+            document.getElementById('countdownDisplay').classList.add('hidden');
+        }
+
+        function startTimer(duration) {
+            roundEndTime = Date.now() + duration;
+            document.getElementById('timerContainer').classList.remove('hidden');
+            
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const remaining = Math.max(0, roundEndTime - Date.now());
+                const seconds = Math.ceil(remaining / 1000);
+                const percentage = (remaining / duration) * 100;
+                
+                const timerBar = document.getElementById('timerBar');
+                const timerText = document.getElementById('timerText');
+                
+                timerBar.style.width = percentage + '%';
+                timerText.textContent = seconds + 's';
+                
+                // Renk değişimi
+                timerBar.className = 'timer-bar';
+                if (percentage < 30) {
+                    timerBar.classList.add('danger');
+                } else if (percentage < 50) {
+                    timerBar.classList.add('warning');
+                }
+                
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                }
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('timerContainer').classList.add('hidden');
+        }
+
+        function joinGame() {
+            const nameInput = document.getElementById('playerName');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                showStatus('Lütfen bir isim girin!', 'error');
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'setName',
+                name: name
+            }));
+        }
+
+        function makeGuess() {
+            const guessInput = document.getElementById('guessInput');
+            const guess = parseInt(guessInput.value);
+
+            if (isNaN(guess) || guess < 100 || guess > 999) {
+                showStatus('Lütfen 100-999 arası geçerli bir 3 basamaklı sayı girin!', 'error');
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'guess',
+                guess: guess
+            }));
+
+            guessInput.value = '';
+            guessInput.focus();
+        }
+
+        function enableGuessing() {
+            const guessInput = document.getElementById('guessInput');
+            guessInput.disabled = false;
+            guessInput.value = ''; // Input'u temizle
+            guessInput.focus();
+            document.getElementById('guessBtn').disabled = false;
+        }
+
+        function disableGuessing() {
+            document.getElementById('guessBtn').disabled = true;
+            document.getElementById('guessInput').disabled = true;
+        }
+
+        function updateGuessCount(count) {
+            document.getElementById('guessCount').textContent = count;
+        }
+
+        function updateMatchScore(score) {
+            document.getElementById('matchScore').textContent = score;
+        }
+
+        function updateTotalScore(score) {
+            document.getElementById('totalScore').textContent = score;
+        }
+
+        function resetRoundStats() {
+            document.getElementById('guessCount').textContent = '0';
+            document.getElementById('guessInput').value = ''; // Input'u temizle
+        }
+
+        function resetMatchStats() {
+            document.getElementById('matchScore').textContent = '0';
+            document.getElementById('guessCount').textContent = '0';
+        }
+
+        function addHistoryItem(guess, result, isCorrect) {
+            const historyList = document.getElementById('historyList');
+            const item = document.createElement('div');
+            
+            item.className = 'history-item' + (isCorrect ? ' correct' : '');
+            
+            const guessDiv = document.createElement('div');
+            guessDiv.className = 'guess-number';
+            guessDiv.textContent = guess.toString().padStart(3, '0');
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'guess-result';
+            
+            if (isCorrect) {
+                resultDiv.innerHTML = '<span style="font-size: 2em;">🎉</span> <strong>DOĞRU!</strong>';
+            } else {
+                resultDiv.innerHTML = `
+                    <span class="result-badge green">🟢 ${result.correct}</span>
+                    <span class="result-badge yellow">🟡 ${result.misplaced}</span>
+                `;
+            }
+            
+            item.appendChild(guessDiv);
+            item.appendChild(resultDiv);
+            
+            historyList.insertBefore(item, historyList.firstChild);
+            
+            // En fazla 15 tahmin göster
+            if (historyList.children.length > 15) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        function clearHistory() {
+            document.getElementById('historyList').innerHTML = '';
+        }
+
+        function showMatchResults(results) {
+            // Burada maç sonuçlarını gösterebilirsiniz
+            console.log('Maç sonuçları:', results);
+        }
+
+        function updateLeaderboard(leaderboard) {
+            const leaderboardEl = document.getElementById('leaderboard');
+            
+            if (leaderboard.length === 0) {
+                leaderboardEl.innerHTML = '<li style="text-align: center; color: #999; padding: 20px;">Henüz oyuncu yok</li>';
+                return;
+            }
+
+            leaderboardEl.innerHTML = leaderboard.map((player, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                return `
+                    <li class="leaderboard-item">
+                        <div class="player-info">
+                            <span class="player-name">${medal} ${player.name}</span>
+                            <span class="player-matches">Maç: ${player.matchScore}p | Round: ${player.roundsWon}🏆</span>
+                        </div>
+                        <span class="player-score">${player.totalScore}p</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // Enter tuşu ile tahmin yapma
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('playerName').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') joinGame();
+            });
+
+            document.getElementById('guessInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') makeGuess();
+            });
+
+            // 3 basamak kontrolü
+            document.getElementById('guessInput').addEventListener('input', (e) => {
+                const value = e.target.value;
+                if (value.length > 3) {
+                    e.target.value = value.slice(0, 3);
+                }
+            });
+
+            // Bağlantıyı başlat
+            connect();
+        });
+    </script>
+</body>
+</html>

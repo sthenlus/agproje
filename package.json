@@ -1,0 +1,16 @@
+{
+  "name": "sayi-tahmin-oyunu",
+  "version": "1.0.0",
+  "description": "WebSocket tabanlı çok oyunculu sayı tahmin oyunu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["websocket", "game", "multiplayer"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+}
+
