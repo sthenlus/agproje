@@ -182,14 +182,30 @@ function startNewRound() {
   }, ROUND_DURATION);
 }
 
+// Tüm aktif oyuncuların round'u kazanıp kazanmadığını kontrol et
+function checkIfAllPlayersWon() {
+  // İsmi olan aktif oyuncuları bul
+  const activePlayers = Array.from(gameState.players.values()).filter(p => p.name && p.name.trim() !== '');
+  
+  // Eğer hiç aktif oyuncu yoksa, false döndür
+  if (activePlayers.length === 0) return false;
+  
+  // Tüm aktif oyuncular kazandı mı?
+  return activePlayers.every(p => p.hasWonRound);
+}
+
 // Round'u bitir
-function endRound() {
+function endRound(earlyEnd = false) {
   if (!gameState.isRoundActive) return;
   
   gameState.isRoundActive = false;
   clearTimeout(gameState.roundTimer);
   
-  console.log(`\n⏰ Round ${gameState.currentRound} süresi doldu!`);
+  if (earlyEnd) {
+    console.log(`\n🎉 Round ${gameState.currentRound} erken bitti! Tüm oyuncular kazandı!`);
+  } else {
+    console.log(`\n⏰ Round ${gameState.currentRound} süresi doldu!`);
+  }
   console.log(`✅ Doğru sayı: ${gameState.targetNumber}\n`);
   
   // Round kazananlarını belirle
@@ -216,7 +232,8 @@ function endRound() {
     roundNumber: gameState.currentRound,
     targetNumber: gameState.targetNumber,
     winners: roundWinners,
-    hasMoreRounds: gameState.currentRound < ROUNDS_PER_MATCH
+    hasMoreRounds: gameState.currentRound < ROUNDS_PER_MATCH,
+    earlyEnd: earlyEnd
   });
   
   // Skor tablosunu güncelle
@@ -490,6 +507,15 @@ wss.on('connection', (ws) => {
             
             // Liderlik tablosunu güncelle
             broadcastLeaderboard();
+            
+            // Tüm aktif oyuncular kazandı mı kontrol et
+            if (checkIfAllPlayersWon()) {
+              console.log(`\n🎉 Tüm oyuncular round'u kazandı! Round erken bitiyor...`);
+              // Kısa bir gecikme sonrası round'u bitir (diğer oyunculara bildirim gönderilsin)
+              setTimeout(() => {
+                endRound(true);
+              }, 1000);
+            }
             
           } else {
             // Yanlış tahmin - ipucu ver

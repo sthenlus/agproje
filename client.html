@@ -849,7 +849,11 @@
                     stopTimer();
                     if (data.winners.length > 0) {
                         const winnerText = data.winners.map(w => `${w.name} (+${w.score}p)`).join(', ');
-                        showStatus(`⏰ Round bitti! Kazananlar: ${winnerText}`, 'success');
+                        if (data.earlyEnd) {
+                            showStatus(`🎉 Tüm oyuncular kazandı! Round erken bitti! Kazananlar: ${winnerText} | Doğru sayı: ${data.targetNumber}`, 'success');
+                        } else {
+                            showStatus(`⏰ Round bitti! Kazananlar: ${winnerText} | Doğru sayı: ${data.targetNumber}`, 'success');
+                        }
                     } else {
                         showStatus(`⏰ Round bitti! Kimse bilеmedi. Doğru sayı: ${data.targetNumber}`, 'error');
                     }
