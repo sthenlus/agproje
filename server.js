@@ -17,6 +17,16 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(data);
     });
+  } else if (req.url === '/client.js') {
+    fs.readFile(path.join(__dirname, 'client.js'), (err, data) => {
+      if (err) {
+        res.writeHead(500);
+        res.end('Dosya okunamadı');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+      res.end(data);
+    });
   } else {
     res.writeHead(404);
     res.end('Sayfa bulunamadı');
@@ -95,7 +105,7 @@ function checkGuess(guess, target) {
 }
 
 // Puan hesaplama
-function calculateScore(guessTime, roundStartTime, roundDuration) {
+function calculateScore(guessTime, roundStartTime, roundDuration, guessCount) {
   const timeElapsed = guessTime - roundStartTime; // ms
   const timeRemaining = roundDuration - timeElapsed; // ms
   
@@ -105,6 +115,29 @@ function calculateScore(guessTime, roundStartTime, roundDuration) {
   // Zaman bonusu: Kalan süreye göre 0-75 arası bonus
   const timeBonus = Math.floor((timeRemaining / roundDuration) * 75);
   score += Math.max(0, timeBonus);
+  
+  // Tahmin sayısına göre puan çarpanı (az tahmin = daha fazla puan)
+  // Daha gerçekçi aralıklar:
+  // 1-5 tahmin: %100-%80 (her tahmin için %5 azalma)
+  // 6-10 tahmin: %75-%55 (her tahmin için %4 azalma)
+  // 11-15 tahmin: %50-%30 (her tahmin için %4 azalma)
+  // 16+ tahmin: %30 (minimum)
+  let guessMultiplier;
+  if (guessCount <= 5) {
+    // İlk 5 tahmin: %100'den %80'e kadar (her tahmin %5 azalır)
+    guessMultiplier = 1 - (guessCount - 1) * 0.05; // 1=>100%, 2=>95%, 3=>90%, 4=>85%, 5=>80%
+  } else if (guessCount <= 10) {
+    // 6-10 tahmin: %75'ten %55'e kadar (her tahmin %4 azalır)
+    guessMultiplier = 0.75 - (guessCount - 6) * 0.04; // 6=>75%, 7=>71%, 8=>67%, 9=>63%, 10=>59%
+  } else if (guessCount <= 15) {
+    // 11-15 tahmin: %50'den %30'a kadar (her tahmin %4 azalır)
+    guessMultiplier = 0.50 - (guessCount - 11) * 0.04; // 11=>50%, 12=>46%, 13=>42%, 14=>38%, 15=>34%
+  } else {
+    // 16+ tahmin: %30 minimum
+    guessMultiplier = 0.30;
+  }
+  
+  score = Math.floor(score * guessMultiplier);
   
   // Minimum 50 puan garanti
   score = Math.max(score, 50);
@@ -477,7 +510,7 @@ wss.on('connection', (ws) => {
           
           if (result.isWin) {
             // KAZANDI!
-            const score = calculateScore(guessTime, gameState.roundStartTime, ROUND_DURATION);
+            const score = calculateScore(guessTime, gameState.roundStartTime, ROUND_DURATION, player.guessCount);
             
             player.roundScore = score;
             player.matchScore += score;
